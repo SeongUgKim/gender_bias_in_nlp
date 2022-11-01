@@ -54,15 +54,16 @@ def tokenize(src, lang, k):
     elif lang == 'zh':
         tokenizer = 'zh_core_web_sm'
     word_tokenizer = spacy.load(tokenizer)
-    for i in range(src.shape[0]):
-        temp = [token.text.lower() for token in word_tokenizer(src[lang][i])]
+    for i in range(10000, 12000):
+        temp1 = [token.text.lower() for token in word_tokenizer(src[lang][i])]
+        temp2 = [token.text for token in word_tokenizer(src[lang][i])]
         # if i > 0 and src['talkid'][i - 1] != src['talkid'][i] and count >= 2 * k + 1:
         #     ret.extend(talks)
         #     talks = []
         #     count = 0
         # else:
         #     talks.append((src['talkid'][i], src[lang][i], temp))
-        ret.append((src['talkid'][i], src[lang][i], temp, i))
+        ret.append((src['talkid'][i], src[lang][i], temp1, temp2, i))
     return ret
 
 
@@ -96,21 +97,24 @@ def get_index(tokens_list, index, k):
 def extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k):
     output = []
     for i in range(len(tokens_list)):
-        male = [word for word in tokens_list[i][2] if word in male_words]
-        female = [word for word in tokens_list[i][2] if word in female_words]
+        male = [j for j in range(len(tokens_list[i][2])) if tokens_list[i][2][j] in male_words]
+        female = [j for j in range(len(tokens_list[i][2])) if tokens_list[i][2][j] in female_words]
+        # male = [word for word in tokens_list[i][2] if word in male_words]
+        # female = [word for word in tokens_list[i][2] if word in female_words]
         if (len(male) == 1 and len(female) == 0) or (len(male) == 0 and len(female) == 1):
             sentence = ''
             indices = get_index(tokens_list, i, k)
             for index in indices:
                 if i == index:
                     temp = tokens_list[index][1]
-                    temp_word = male[0] if len(male) == 1 else female[0]
+                    temp_word = tokens_list[index][3][male[0]] if len(male) == 1 else tokens_list[index][3][female[0]]
                     mask_index = temp.find(temp_word)
-                    if mask_index == -1:
-                        temp_list = list(temp_word)
-                        temp_list[0] = temp_list[0].upper()
-                        temp_word = ''.join(temp_list)
-                        mask_index = temp.find(temp_word)
+                    # if mask_index == -1:
+                    #     temp_list = list(temp_word)
+                    #     temp_list[0] = temp_list[0].upper()
+                    #     temp_word = ''.join(temp_list)
+                    #     mask_index = temp.find(temp_word)
+                    # if mask_index == -1:
                     result = temp[:mask_index] + '[MASK]' + temp[mask_index + len(temp_word):]
                     sentence = sentence + (result + ' ')
                 else:

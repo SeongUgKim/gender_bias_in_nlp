@@ -3,6 +3,7 @@ import csv
 
 import spacy
 import pandas as pd
+import pickle
 
 
 def parse_args():
@@ -16,6 +17,17 @@ def parse_args():
     parser.add_argument('--k', type=int, required=True)
     args = parser.parse_args()
     return args
+
+
+def write_list(a_list, filename):
+    with open(filename, 'wb') as f:
+        pickle.dump(a_list, f)
+
+
+def read_list(filename):
+    with open(filename, 'rb') as f:
+        n_list = pickle.load(f, encoding='utf8')
+        return n_list
 
 
 def tokenize(src, lang, k):
@@ -82,28 +94,28 @@ def get_index(tokens_list, index, k):
 
 
 def extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k):
-    output = pd.DataFrame(columns=['sentence'])
+    output = []
     for i in range(len(tokens_list)):
         male = [word for word in tokens_list[i][2] if word in male_words]
         female = [word for word in tokens_list[i][2] if word in female_words]
         if (len(male) == 1 and len(female) == 0) or (len(male) == 0 and len(female) == 1):
             sentence = ''
             indices = get_index(tokens_list, i, k)
-            cnt = 0
             for index in indices:
                 if i == index:
-                    cnt += len(tokens_list[index][2])
                     temp = tokens_list[index][1]
                     temp_word = male[0] if len(male) == 1 else female[0]
                     mask_index = temp.find(temp_word)
+                    if mask_index == -1:
+                        temp_list = list(temp_word)
+                        temp_list[0] = temp_list[0].upper()
+                        temp_word = ''.join(temp_list)
+                        mask_index = temp.find(temp_word)
                     result = temp[:mask_index] + '[MASK]' + temp[mask_index + len(temp_word):]
                     sentence = sentence + (result + ' ')
                 else:
                     sentence = sentence + (tokens_list[index][1] + ' ')
-            if cnt > 512:
-                continue
-            output = pd.concat([output, pd.DataFrame([sentence[:len(sentence) - 1]], columns=output.columns)],
-                               ignore_index=True)
+            output.append(sentence[:len(sentence) - 1])
     return output
 
 
@@ -119,13 +131,11 @@ def main(args):
         ted_lang = ted[['talkid', 'zh-cn']]
     else:
         ted_lang = ted[['talkid', lang]]
-    with open(male) as f:
-        male_words = [line[:len(line) - 1] for line in f.readlines()]
-    with open(female) as f:
-        female_words = [line[:len(line) - 1] for line in f.readlines()]
+    male_words = read_list(male)
+    female_words = read_list(female)
     tokens_list = tokenize(ted_lang, lang, k)
     gender_sentence = extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k)
-    print(gender_sentence['sentence'][0])
+    write_list(gender_sentence, 'temp')
     return
 
 

@@ -53,8 +53,6 @@ def main():
     write_list(only_female_es, 'eval_words/only_female_words_es')
     write_list(only_male_pt, 'eval_words/only_male_words_pt')
     write_list(only_female_pt, 'eval_words/only_female_words_pt')
-    write_list(male_words_pt, 'eval_words/male_words_pt')
-    write_list(female_words_pt, 'eval_words/female_words_pt')
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ import spacy
 import pandas as pd
 import pickle
 from transformers import pipeline
+from transformers import BertTokenizer
 
 
 def parse_args():
@@ -55,7 +56,7 @@ def tokenize(src, lang, k):
     elif lang == 'zh':
         tokenizer = 'zh_core_web_sm'
     word_tokenizer = spacy.load(tokenizer)
-    for i in range(src.shape[0]):
+    for i in range(1000):
         temp1 = [token.text.lower() for token in word_tokenizer(src[lang][i])]
         temp2 = [token.text for token in word_tokenizer(src[lang][i])]
         # if i > 0 and src['talkid'][i - 1] != src['talkid'][i] and count >= 2 * k + 1:
@@ -137,7 +138,11 @@ def rule_based_extract(tokens_list, male_words, female_words, k):
 
 def model_based_extract(masked_sentence_list, male_words, female_words, model):
     unmasker = pipeline('fill-mask', model=model, top_k=10)
-    result = [unmasker(sentence) for sentence in masked_sentence_list]
+    tokenizer = BertTokenizer.from_pretrained(model)
+    result = []
+    for sentence in masked_sentence_list:
+        if len(tokenizer.tokenize(sentence)) < 512:
+            result.append(unmasker(sentence))
     gender_predict = []
     for predicts in result:
         m = []

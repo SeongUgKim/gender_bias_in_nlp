@@ -55,7 +55,7 @@ def tokenize(src, lang, k):
     elif lang == 'zh':
         tokenizer = 'zh_core_web_sm'
     word_tokenizer = spacy.load(tokenizer)
-    for i in range(10000, 12000):
+    for i in range(src.shape[0]):
         temp1 = [token.text.lower() for token in word_tokenizer(src[lang][i])]
         temp2 = [token.text for token in word_tokenizer(src[lang][i])]
         # if i > 0 and src['talkid'][i - 1] != src['talkid'][i] and count >= 2 * k + 1:

@@ -143,8 +143,6 @@ def model_based_extract(masked_sentence_list, male_words, female_words, model):
         m = []
         f = []
         for predict in predicts:
-            m = []
-            f = []
             if predict['token_str'].lower() in male_words and len(m) == 0:
                 m.append((predict['token_str'], predict['sequence']))
             if predict['token_str'].lower() in female_words and len(f) == 0:
@@ -153,13 +151,21 @@ def model_based_extract(masked_sentence_list, male_words, female_words, model):
         gender_predict.append(temp)
     male = []
     female = []
+    both = 0
+    one = 0
+    non = 0
+    cnt = 0
     for predict in gender_predict:
+        cnt += 1
         if predict['male'] is None and predict['female'] is None:
+            non += 1
             continue
         if predict['male'] is not None and predict['female'] is not None:
             male.append((predict['male'][1]))
             female.append(predict['female'][1])
+            both += 1
             continue
+        one += 1
         sentence = predict['male'][1] if predict['female'] is None else predict['female'][1]
         word = predict['male'][0] if predict['female'] is None else predict['female'][0]
         counter_word_index = male_words.index(word.lower()) if predict['female'] is None else female_words.index(word.lower())
@@ -178,7 +184,8 @@ def model_based_extract(masked_sentence_list, male_words, female_words, model):
         else:
             male.append(sentence)
             female.append(counterpart)
-    return male, female
+    loss_prob = f'both: {both / cnt}, one: {one / cnt}, non: {non / cnt}'
+    return male, female, loss_prob
 
 
 def extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k):
@@ -232,11 +239,14 @@ def main(args):
     write_list(rule_based_male, male_filename)
     write_list(rule_based_female, female_filename)
     gender_sentence = extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k)
-    model_based_male, model_based_female = model_based_extract(gender_sentence, male_words, female_words, model)
+    model_based_male, model_based_female, loss_prob = model_based_extract(gender_sentence, male_words, female_words, model)
     male_filename = 'sentence/model_based_male_sentences_' + lang
     female_filename = 'sentence/model_based_female_sentences_' + lang
+    prob_filename = 'sentence/prob_' + lang + '.txt'
     write_list(model_based_male, male_filename)
     write_list(model_based_female, female_filename)
+    with open(prob_filename, 'w') as f:
+        f.write(loss_prob)
     return
 
 

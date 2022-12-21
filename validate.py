@@ -23,7 +23,7 @@ def tokenize(src, lang):
     elif lang == 'zh':
         tokenizer = 'zh_core_web_sm'
     word_tokenizer = spacy.load(tokenizer)
-    for i in range(200000, 211230):
+    for i in range(src.shape[0]):
         temp = [token.text.lower() for token in word_tokenizer(src[lang][i])]
         ret.append((src[lang][i], temp, i))
     return ret

@@ -6,7 +6,7 @@ import pandas as pd
 import pickle
 from transformers import pipeline
 from transformers import BertTokenizer
-
+import random
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -56,7 +56,8 @@ def tokenize(src, lang, k):
     elif lang == 'zh':
         tokenizer = 'zh_core_web_sm'
     word_tokenizer = spacy.load(tokenizer)
-    for i in range(1000):
+    #print(src.shape[0])
+    for i in range(src.shape[0]):
         temp1 = [token.text.lower() for token in word_tokenizer(src[lang][i])]
         temp2 = [token.text for token in word_tokenizer(src[lang][i])]
         # if i > 0 and src['talkid'][i - 1] != src['talkid'][i] and count >= 2 * k + 1:
@@ -98,6 +99,7 @@ def get_index(tokens_list, index, k):
 def rule_based_extract(tokens_list, male_words, female_words, k):
     male_output = []
     female_output = []
+    cnt = 0
     for i in range(len(tokens_list)):
         male = [j for j in range(len(tokens_list[i][2])) if tokens_list[i][2][j] in male_words]
         female = [j for j in range(len(tokens_list[i][2])) if tokens_list[i][2][j] in female_words]
@@ -133,8 +135,87 @@ def rule_based_extract(tokens_list, male_words, female_words, k):
                     female_sentence = female_sentence + (tokens_list[index][1] + ' ')
             male_output.append(male_sentence[:len(male_sentence) - 1])
             female_output.append(female_sentence[:len(female_sentence) - 1])
-    return male_output, female_output
+            cnt += 1
 
+    return male_output, female_output, cnt
+
+def no_sie_rule_based_extract(tokens_list, male_words, female_words, k):
+    male_output = {}
+    female_output = {}
+    male_idx = []
+    female_idx = []
+    cnt = 0
+    for i in range(len(tokens_list)):
+        if 'er' in tokens_list[i][2]:
+            continue
+        male = [j for j in range(len(tokens_list[i][2])) if tokens_list[i][2][j] in male_words]
+        female = [j for j in range(len(tokens_list[i][2])) if tokens_list[i][2][j] in female_words]
+        if (len(male) == 1 and len(female) == 0) or (len(male) == 0 and len(female) == 1):
+            male_sentence = ''
+            female_sentence = ''
+            indices = get_index(tokens_list, i, k)
+            for index in indices:
+                if i == index:
+                    temp = tokens_list[index][1]
+                    if len(male) == 1:
+                        male_idx.append(i)
+                        temp_word = tokens_list[index][3][male[0]]
+                        idx_within_lexicon = male_words.index(tokens_list[index][2][male[0]])
+                        corresponding_word = female_words[idx_within_lexicon]
+                        genderword_idx = temp.find(temp_word)
+                        if temp_word[0].isupper():
+                            corresponding_word = corresponding_word.replace(corresponding_word[0], corresponding_word[0].upper())
+                        corresponding_sentence = temp[:genderword_idx] + corresponding_word + temp[genderword_idx + len(temp_word):]
+                        male_sentence = male_sentence + temp + ' '
+                        female_sentence = female_sentence + corresponding_sentence + ' '
+                    else:
+                        female_idx.append(i)
+                        temp_word = tokens_list[index][3][female[0]]
+                        idx_within_lexicon = female_words.index(tokens_list[index][2][female[0]])
+                        corresponding_word = male_words[idx_within_lexicon]
+                        genderword_idx = temp.find(temp_word)
+                        if temp_word[0].isupper():
+                            corresponding_word = corresponding_word.replace(corresponding_word[0], corresponding_word[0].upper())
+                        corresponding_sentence = temp[:genderword_idx] + corresponding_word + temp[genderword_idx + len(temp_word):]
+                        male_sentence = male_sentence + corresponding_sentence + ' '
+                        female_sentence = female_sentence + temp + ' '
+                else:
+                    male_sentence = male_sentence + (tokens_list[index][1] + ' ')
+                    female_sentence = female_sentence + (tokens_list[index][1] + ' ')
+            male_output[i] = male_sentence[:len(male_sentence) - 1]
+            female_output[i] = female_sentence[:len(female_sentence) - 1]
+            cnt += 1
+
+    #after male and female sentences added
+    if len(male_idx) > len(female_idx):
+        n = len(male_idx) - len(female_idx)
+        # toBeRemoved = male_idx[-n:]
+        # del male_idx[-n:]
+        toBeRemoved = random.sample(male_idx, n)
+
+        #sanity check
+        for i in toBeRemoved:
+            male_idx.remove(i)
+
+        for i in toBeRemoved:
+            del male_output[i]
+            del female_output[i]
+    else:
+        n = len(female_idx) - len(male_idx)
+        toBeRemoved = random.sample(female_idx, n)
+
+        #sanity check
+        for i in toBeRemoved:
+            female_idx.remove(i)
+
+        for i in toBeRemoved:
+            del male_output[i]
+            del female_output[i]
+
+    male_output = list(male_output.values())
+    female_output = list(female_output.values())
+
+    return male_output, female_output, cnt
 
 def model_based_extract(masked_sentence_list, male_words, female_words, model):
     unmasker = pipeline('fill-mask', model=model, top_k=10)
@@ -189,7 +270,7 @@ def model_based_extract(masked_sentence_list, male_words, female_words, model):
         else:
             male.append(sentence)
             female.append(counterpart)
-    loss_prob = f'both: {both / cnt}, one: {one / cnt}, non: {non / cnt}'
+    loss_prob = f'both: {both / cnt}, one: {one / cnt}, non: {non / cnt}, totalModel: {cnt}'
     return male, female, loss_prob
 
 
@@ -213,6 +294,27 @@ def extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k):
             output.append(sentence[:len(sentence) - 1])
     return output
 
+def no_sie_extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k):
+    output = []
+    for i in range(len(tokens_list)):
+        if 'er' in tokens_list[i][2]:
+            continue
+        male = [j for j in range(len(tokens_list[i][2])) if tokens_list[i][2][j] in male_words]
+        female = [j for j in range(len(tokens_list[i][2])) if tokens_list[i][2][j] in female_words]
+        if (len(male) == 1 and len(female) == 0) or (len(male) == 0 and len(female) == 1):
+            sentence = ''
+            indices = get_index(tokens_list, i, k)
+            for index in indices:
+                if i == index:
+                    temp = tokens_list[index][1]
+                    temp_word = tokens_list[index][3][male[0]] if len(male) == 1 else tokens_list[index][3][female[0]]
+                    mask_index = temp.find(temp_word)
+                    result = temp[:mask_index] + '[MASK]' + temp[mask_index + len(temp_word):]
+                    sentence = sentence + (result + ' ')
+                else:
+                    sentence = sentence + (tokens_list[index][1] + ' ')
+            output.append(sentence[:len(sentence) - 1])
+    return output
 
 def main(args):
     lang = args.lang
@@ -238,20 +340,25 @@ def main(args):
     male_words = read_list(male)
     female_words = read_list(female)
     tokens_list = tokenize(ted_lang, lang, k)
-    rule_based_male, rule_based_female = rule_based_extract(tokens_list, male_words, female_words, k)
-    male_filename = 'sentence/rule_based_male_sentences_' + lang
-    female_filename = 'sentence/rule_based_female_sentences_' + lang
+    # rule_based_male, rule_based_female, cnt = rule_based_extract(tokens_list, male_words, female_words, k)
+    rule_based_male, rule_based_female, cnt = no_sie_rule_based_extract(tokens_list, male_words, female_words, k)
+    male_filename = 'sentence/modified_rule_based_male_sentences_' + lang
+    female_filename = 'sentence/modified_rule_based_female_sentences_' + lang
     write_list(rule_based_male, male_filename)
     write_list(rule_based_female, female_filename)
-    gender_sentence = extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k)
-    model_based_male, model_based_female, loss_prob = model_based_extract(gender_sentence, male_words, female_words, model)
-    male_filename = 'sentence/model_based_male_sentences_' + lang
-    female_filename = 'sentence/model_based_female_sentences_' + lang
-    prob_filename = 'sentence/prob_' + lang + '.txt'
-    write_list(model_based_male, male_filename)
-    write_list(model_based_female, female_filename)
-    with open(prob_filename, 'w') as f:
-        f.write(loss_prob)
+
+    # gender_sentence = extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k)
+    # gender_sentence = no_sie_extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k)
+    # model_based_male, model_based_female, loss_prob = model_based_extract(gender_sentence, male_words, female_words, model)
+    # male_filename = 'sentence/model_based_male_sentences_' + lang
+    # female_filename = 'sentence/model_based_female_sentences_' + lang
+    # prob_filename = 'sentence/prob_' + lang + '.txt'
+    # write_list(model_based_male, male_filename)
+    # write_list(model_based_female, female_filename)
+    #
+    # loss_prob += f' totalRule: {cnt}'
+    # with open(prob_filename, 'w') as f:
+    #     f.write(loss_prob)
     return
 
 

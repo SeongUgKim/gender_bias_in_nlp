@@ -56,8 +56,8 @@ def tokenize(src, lang, k):
     elif lang == 'zh':
         tokenizer = 'zh_core_web_sm'
     word_tokenizer = spacy.load(tokenizer)
-    #print(src.shape[0])
     for i in range(src.shape[0]):
+        # do not need if the language does not contain upper case and lower case ex) Chinese
         temp1 = [token.text.lower() for token in word_tokenizer(src[lang][i])]
         temp2 = [token.text for token in word_tokenizer(src[lang][i])]
         # if i > 0 and src['talkid'][i - 1] != src['talkid'][i] and count >= 2 * k + 1:
@@ -144,7 +144,7 @@ def no_sie_rule_based_extract(tokens_list, male_words, female_words, k):
     female_output = {}
     male_idx = []
     female_idx = []
-    cnt = 0
+    cnt, n = 0, 0
     for i in range(len(tokens_list)):
         if 'er' in tokens_list[i][2]:
             continue
@@ -215,7 +215,7 @@ def no_sie_rule_based_extract(tokens_list, male_words, female_words, k):
     male_output = list(male_output.values())
     female_output = list(female_output.values())
 
-    return male_output, female_output, cnt
+    return male_output, female_output, cnt, n
 
 def model_based_extract(masked_sentence_list, male_words, female_words, model):
     unmasker = pipeline('fill-mask', model=model, top_k=10)
@@ -331,6 +331,8 @@ def main(args):
         model = 'neuralmind/bert-base-portuguese-cased'
     if lang == 'en':
         model = 'bert-base-cased'
+    if lang == 'zh':
+        model = 'hfl/chinese-bert-wwm-ext'
     ted = pd.read_csv(corpus, sep='\t', keep_default_na=False,
                       encoding='utf8', quoting=csv.QUOTE_NONE)
     if lang == 'zh':
@@ -341,24 +343,24 @@ def main(args):
     female_words = read_list(female)
     tokens_list = tokenize(ted_lang, lang, k)
     # rule_based_male, rule_based_female, cnt = rule_based_extract(tokens_list, male_words, female_words, k)
-    rule_based_male, rule_based_female, cnt = no_sie_rule_based_extract(tokens_list, male_words, female_words, k)
+    rule_based_male, rule_based_female, cnt, removed = no_sie_rule_based_extract(tokens_list, male_words, female_words, k)
     male_filename = 'sentence/modified_rule_based_male_sentences_' + lang
     female_filename = 'sentence/modified_rule_based_female_sentences_' + lang
     write_list(rule_based_male, male_filename)
     write_list(rule_based_female, female_filename)
 
-    # gender_sentence = extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k)
+    gender_sentence = extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k)
     # gender_sentence = no_sie_extract_kth_neighbor_sentences(tokens_list, male_words, female_words, k)
-    # model_based_male, model_based_female, loss_prob = model_based_extract(gender_sentence, male_words, female_words, model)
-    # male_filename = 'sentence/model_based_male_sentences_' + lang
-    # female_filename = 'sentence/model_based_female_sentences_' + lang
-    # prob_filename = 'sentence/prob_' + lang + '.txt'
-    # write_list(model_based_male, male_filename)
-    # write_list(model_based_female, female_filename)
+    model_based_male, model_based_female, loss_prob = model_based_extract(gender_sentence, male_words, female_words, model)
+    male_filename1 = 'sentence/model_based_male_sentences_' + lang
+    female_filename1 = 'sentence/model_based_female_sentences_' + lang
+    prob_filename = 'sentence/prob_' + lang + '.txt'
+    write_list(model_based_male, male_filename1)
+    write_list(model_based_female, female_filename1)
     #
-    # loss_prob += f' totalRule: {cnt}'
-    # with open(prob_filename, 'w') as f:
-    #     f.write(loss_prob)
+    loss_prob += f' totalRule: {cnt}'
+    with open(prob_filename, 'w') as f:
+        f.write(loss_prob)
     return
 
 

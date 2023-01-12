@@ -1,6 +1,6 @@
 import pandas as pd
 import csv
-import validate
+import extract
 import pickle
 
 def read_list(filename):
@@ -23,7 +23,7 @@ def create_word_list():
     return res
 
 def extract_index(src, lang, word_list):    
-    src_tokens_list = validate.tokenize(src, lang)
+    src_tokens_list = extract.tokenize(src, lang)
     index_list = []
     for tokens in src_tokens_list:
         cnt = 0

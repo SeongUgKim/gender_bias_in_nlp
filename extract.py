@@ -215,7 +215,7 @@ def no_sie_rule_based_extract(tokens_list, male_words, female_words, k):
     male_output = list(male_output.values())
     female_output = list(female_output.values())
 
-    return male_output, female_output, cnt, n
+    return male_output, female_output, cnt
 
 def model_based_extract(masked_sentence_list, male_words, female_words, model):
     unmasker = pipeline('fill-mask', model=model, top_k=10)
@@ -343,7 +343,7 @@ def main(args):
     female_words = read_list(female)
     tokens_list = tokenize(ted_lang, lang, k)
     # rule_based_male, rule_based_female, cnt = rule_based_extract(tokens_list, male_words, female_words, k)
-    rule_based_male, rule_based_female, cnt, removed = no_sie_rule_based_extract(tokens_list, male_words, female_words, k)
+    rule_based_male, rule_based_female, cnt = no_sie_rule_based_extract(tokens_list, male_words, female_words, k)
     male_filename = 'sentence/modified_rule_based_male_sentences_' + lang
     female_filename = 'sentence/modified_rule_based_female_sentences_' + lang
     write_list(rule_based_male, male_filename)
@@ -357,7 +357,6 @@ def main(args):
     prob_filename = 'sentence/prob_' + lang + '.txt'
     write_list(model_based_male, male_filename1)
     write_list(model_based_female, female_filename1)
-    #
     loss_prob += f' totalRule: {cnt}'
     with open(prob_filename, 'w') as f:
         f.write(loss_prob)

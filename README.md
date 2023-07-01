@@ -28,7 +28,7 @@ Strengths
 
 3. Multilingual Bias Evaluation Metrics
 
-* Using the sentences from part 2, Strict Bias Metrics that quantify gender bias of language models can be evaluated in "MBE_Calculation.ipynb" file.
+* Using the sentences, Strict Bias Metrics that quantify gender bias of language models can be evaluated in "MBE_Calculation.ipynb" file.
 * With the size of our corpus being approximately 30,000 sentences for each language, our evaluation for each language took less than 10 minutes for each language.
 
 ## Contact

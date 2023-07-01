@@ -13,7 +13,7 @@ Strengths
 
 1. Multilingual Gender Lexicon
 
-* MGL in five languages, English, German, Spanish, Portuguese, and Chinese are within eval_words folder in the repository.
+* MGL in five languages, English, German, Spanish, Portuguese, and Chinese are within <mark >"eval_words"</mark> folder in the repository.
 * Encoded as a pickle file, each file is classified with respect to gender and language.
 * In generating the pairs of sentences for evaluating gender bias of language models, each file is required as input.
 

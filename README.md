@@ -5,15 +5,15 @@ Our work distinguishes itself from other works through its unique features and c
 
 
 Strengths
-* It provides a multi-lingual gender lexicon in English, German, Spanish, Portuguese and Chinese. 
-* It evaluates gender bias of language models on any corpus in these five languagues. 
+* It provides a multi-lingual gender lexicon in English, German, Spanish, Portuguese, and Chinese. 
+* It evaluates the gender bias of language models on any corpus in these five languages. 
 * The evaluation corpus and the language model can be easily altered to assess gender bias.
 
 ## Guideline 
 
 1. Multilingual Gender Lexicon
 
-* MGL in five languages, English, German, Spanish, Portuguese, and Chinese are within <mark >"eval_words"</mark> folder in the repository.
+* MGL in five languages, English, German, Spanish, Portuguese, and Chinese are within "eval_words" folder in the repository.
 * Encoded as a pickle file, each file is classified with respect to gender and language.
 * In generating the pairs of sentences for evaluating gender bias of language models, each file is required as input.
 
@@ -21,7 +21,7 @@ Strengths
 
 * Given this MGL from eval_words folder, lexicon_based and model_based sentence extraction is conducted through "extract.py" file.**  
 * Within this file, one can change the evaluation corpus by modifying the arguments of this Python file.
-* The required arguments to pass are the language of the corpus(model), male gender lexicon, female gender lexicon, and the corpus.
+* The required arguments to pass are the language of the corpus(model), the male gender lexicon, the female gender lexicon, and the corpus.
 * This file first tokenizes the corpus, extracts the sentences containing the gendered word, generates the sentences, and writes the sentences in pickle format.
 * One can also use Jupyter Notebook to make the sentence that is shown in "extraction_chn.ipynb" file.
 * An illustration of how this pipeline works is shown in the main function of "extract.py" file.

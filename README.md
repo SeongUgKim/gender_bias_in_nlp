@@ -19,7 +19,7 @@ Strengths
 
 2. Lexicon_based and Model_based Sentence Extraction
 
-* Given this MGL from eval_words folder, lexicon_based and model_based sentence extraction is conducted through "extract.py" file.**  
+* Given this MGL from eval_words folder, lexicon_based and model_based sentence extraction is conducted through "extract.py" file.  
 * Within this file, one can change the evaluation corpus by modifying the arguments of this Python file.
 * The required arguments to pass are the language of the corpus(model), the male gender lexicon, the female gender lexicon, and the corpus.
 * This file first tokenizes the corpus, extracts the sentences containing the gendered word, generates the sentences, and writes the sentences in pickle format.
